@@ -17,6 +17,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_route_logger_middleware import RouteLoggerMiddleware
 from starlette_exporter import PrometheusMiddleware, handle_metrics
 
 from llm_gateway.routers import cohere_api, openai_api
@@ -42,6 +43,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RouteLoggerMiddleware)
 app.add_middleware(
     PrometheusMiddleware,
     app_name="llm_gateway",
