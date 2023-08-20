@@ -17,6 +17,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette_exporter import PrometheusMiddleware, handle_metrics
 
 from llm_gateway.routers import cohere_api, openai_api
 
@@ -41,6 +42,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(
+    PrometheusMiddleware,
+    app_name="llm_gateway",
+    prefix="llm_gateway",
+    group_paths=True,
+    buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0],
+)
+app.add_route("/metrics", handle_metrics)
 
 
 @api.get("/healthcheck")
