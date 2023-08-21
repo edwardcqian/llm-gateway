@@ -15,12 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import loguru
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_route_logger_middleware import RouteLoggerMiddleware
 from starlette_exporter import PrometheusMiddleware, handle_metrics
 
 from llm_gateway.routers import cohere_api, openai_api
+from llm_gateway.utils import setup_tracing
+from llm_gateway.log import add_trace_id, init_logging
+
+
+APP_NAME = "llm_gateway"
 
 app = FastAPI()
 app.title = "LLM Proxy"
@@ -36,6 +43,8 @@ app.mount("/api", api, name="api")
 # Allow Front-end Origin in local development
 origins = ["http://localhost:3000"]
 
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -43,7 +52,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RouteLoggerMiddleware)
+logger = loguru.logger.patch(add_trace_id)
+app.add_middleware(RouteLoggerMiddleware, logger=logger)
 app.add_middleware(
     PrometheusMiddleware,
     app_name="llm_gateway",
@@ -52,6 +62,8 @@ app.add_middleware(
     buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0],
 )
 app.add_route("/metrics", handle_metrics)
+init_logging()
+setup_tracing(app, APP_NAME)
 
 
 @api.get("/healthcheck")
